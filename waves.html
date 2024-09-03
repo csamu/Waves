@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Waves</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+    <script>
+        window.addEventListener("DOMContentLoaded", () => {
+
+        function getRandomValue(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function createBezierCurveCubicString(numPoints, pointiness, width, height) {
+
+            const points = [];
+            let pathData = "";
+            const segment = width / numPoints
+
+            // Some random points for the curve
+            for (let i = 0; i <= numPoints+1; i++) {
+                points.push({
+                    x: Math.round(segment * i),
+                    y: Math.round((height/pointiness + (Math.random() * (height/pointiness))))
+                });
+            }
+
+            pathData += `M 0,${height}`; // Start point, bottom left
+            pathData += `L ${points[0].x},${points[0].y}`;
+
+            const dx1 = points[1].x
+            const dy1 = points[1].y
+            let dx2 = points[2].x
+            let dy2 = points[2].y
+            let dx  = points[3].x
+            let dy  = points[3].y
+
+            pathData += ` C ${dx1},${dy1} ${dx2},${dy2} ${dx},${dy}`; // Start curve
+
+            for (let i = 4; i < points.length-2; i += 2) {
+                dx2 = points[i].x
+                dy2 = points[i].y
+                dx = points[i+1].x
+                dy = points[i+1].y
+                pathData += ` S ${dx2},${dy2} ${dx},${dy}`; // Continue curve
+            }
+            
+            pathData += `L ${width},${height} Z`; // Stop point, bottom right
+            return pathData;
+        }
+
+        const width = 1920;
+        const height = 1080;
+        const numPoints = 19;
+        const waveVerticalSpeed = 30000; // Bigger is slower. Animation duration in milliseconds
+        const waveAnimationSpeed = 40000; // Bigger is slower. Animation duration in milliseconds
+        const pointiness = 10; // More is less pointy curves
+
+        const svg = document.querySelector('#waveSvg');
+        const waveGroup = svg.querySelector("#waveGroup"); // SVG <g> with all waves
+        const wavePaths = waveGroup.querySelectorAll("path"); // List of all waves nodes
+
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`); // Set SVG size
+
+        const generateRandomCurve = () => {
+            return createBezierCurveCubicString(numPoints, pointiness, width, height);
+        };
+
+        // Loop through each wave
+        wavePaths.forEach((node, index) => {
+            const curve1 = generateRandomCurve();
+            const curve2 = generateRandomCurve();
+            const curve3 = generateRandomCurve();
+            node.setAttribute("d", curve1); // Set initial curve
+
+            // Start the looped wave animation
+            anime({
+                targets: node,
+                easing: 'easeInOutCubic',
+                duration: waveAnimationSpeed * Math.max(0.5, Math.random()),
+                loop: true,
+                d: [
+                    { value: [curve1, curve2]}, // Looks strange but is necessary for proper loops
+                    { value: curve3 },
+                    { value: curve1 } // Back to first curve
+                ]
+            });
+
+            // Get the Y position (translateY) in the HTML for each wave
+            const initialY = Number(node.style.transform.replace(/[^\-\d.]/g, ''));
+
+            // Calculate the animation speed for the first animation
+            const durationToTop = waveVerticalSpeed * (1 - (-initialY / height));
+
+            const onLoopComplete = () => {
+                // Move wave below the screen. This shouldn't be necessary for the second animation,
+                // but without this, CSS rotate glitches together with animeJS, making it flicker.
+                node.style.transform = `translateY(${height}px)`; 
+
+                // Move the wave to the end of the DOM list (like changing the y-index, but for SVG)
+                waveGroup.appendChild(node);
+            };
+
+            // The first animation, unlooped, from the initial position (hardcoded in HTML) to above the screen
+            anime({
+                targets: node,
+                easing: 'linear',
+                duration: durationToTop,
+                loop: false,
+                translateY: `-${height}`, // Transition the wave to above the screen
+                complete: (anim) => {
+                    onLoopComplete();
+
+                    // The second animation, looped
+                    anime({
+                        targets: node,
+                        easing: 'linear',
+                        duration: waveVerticalSpeed*2,
+                        loop: true,
+                        translateY: `-${height}`, // Transition the wave to above the screen
+                        loopComplete: onLoopComplete
+                    });
+                }
+            });
+        });
+    });
+    </script>
+    <style>
+        #waveGroup {
+            rotate: 25deg;
+            transform: scale(1.2, 1.2);
+        }
+        #waveGroup > path {
+            fill: url(#gradient);
+        }
+    </style>
+</head>
+<body>
+    <svg id="waveSvg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <radialGradient id="gradient" r="70%" fy="0.1">
+                <stop offset="0%" stop-color="#F1D2FF" />
+                <stop offset="100%" stop-color="#081235" />
+                <!-- Slow gradient motion on all waves -->
+                <animate 
+                    attributeName="cx" 
+                    dur="20000ms" 
+                    values="30%;70%;30%" 
+                    repeatCount="indefinite"
+                    calcMode="spline"
+                    keyTimes="0;0.5;1"
+                    keySplines=".42 0 .58 1;.42 0 .58 1"
+                />
+                <animate attributeName="cy" dur="20000ms" values="0%;20%;0%" repeatCount="indefinite" />
+            </radialGradient>
+        </defs>
+        <g id="waveGroup">
+            <path style="transform: translateY(-1000px)"></path>
+            <path style="transform: translateY(-800px)"></path>
+            <path style="transform: translateY(-600px)"></path>
+            <path style="transform: translateY(-400px)"></path>
+            <path style="transform: translateY(-200px)"></path>
+            <path style="transform: translateY(+000px)"></path>
+            <path style="transform: translateY(+200px)"></path>
+            <path style="transform: translateY(+400px)"></path>
+            <path style="transform: translateY(+600px)"></path>
+            <path style="transform: translateY(+800px)"></path>
+            <path style="transform: translateY(+1000px)"></path>
+        </g>
+    </svg>
+</body>
+</html>
