@@ -2,7 +2,7 @@
 
 ![effect](https://github.com/user-attachments/assets/952820e4-a596-49bb-8bf1-f1922d27605d)
 
-Wave patterns that [slowly moves upwards](https://github.com/user-attachments/assets/952820e4-a596-49bb-8bf1-f1922d27605d) over the screen
+Wave patterns that slowly moves upwards over the screen
 
 ## Goal
 The goal is to replicate the background video effect from the [All Ears website](https://sv.allears.ai/).
